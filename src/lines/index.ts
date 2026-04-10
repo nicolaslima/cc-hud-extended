@@ -45,7 +45,7 @@ export function getAllLines(config: HudConfig): LineRenderer[] {
   const allLines = [...BUILT_IN_LINES, ...customLines];
   const order = config.lineOrder;
 
-  if (!order) return allLines;
+  if (!order || !Array.isArray(order)) return allLines;
 
   // Sort by lineOrder, unknown lines go last
   const ordered: LineRenderer[] = [];
