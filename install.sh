@@ -95,22 +95,27 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
 
 if curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_DIR/cc-hud-extended.tar.gz" 2>/dev/null; then
   tar -xzf "$TEMP_DIR/cc-hud-extended.tar.gz" -C "$TEMP_DIR"
+  # Check for pre-built dist in extracted content (may be at root or in a wrapper dir)
   EXTRACTED=$(find "$TEMP_DIR" -maxdepth 1 -type d ! -path "$TEMP_DIR" | head -1)
-  if [ -n "$EXTRACTED" ]; then
-    if [ -d "$EXTRACTED/dist" ]; then
-      cp -r "$EXTRACTED/dist/"* "$INSTALL_DIR/"
-    else
+  if [ -n "$EXTRACTED" ] && [ -d "$EXTRACTED/dist" ]; then
+    # Tarball has a wrapper directory (e.g. GitHub source archives)
+    cp -r "$EXTRACTED/dist/"* "$INSTALL_DIR/"
+  elif [ -d "$TEMP_DIR/dist" ]; then
+    # Tarball has dist/ at root (release tarball)
+    cp -r "$TEMP_DIR/dist/"* "$INSTALL_DIR/"
+  else
+    # Try building from source
+    SRC_DIR="${EXTRACTED:-$TEMP_DIR}"
+    if [ -f "$SRC_DIR/package.json" ]; then
       warn "Pre-built dist not found. Building from source..."
-      if [ -f "$EXTRACTED/package.json" ]; then
-        (cd "$EXTRACTED" && npm install --production=false 2>&1 && npx tsc 2>&1) || {
-          err "Build from source failed."
-          exit 1
-        }
-        cp -r "$EXTRACTED/dist/"* "$INSTALL_DIR/"
-      else
-        err "Could not find or build dist/. Aborting."
+      (cd "$SRC_DIR" && npm install --production=false 2>&1 && npx tsc 2>&1) || {
+        err "Build from source failed."
         exit 1
-      fi
+      }
+      cp -r "$SRC_DIR/dist/"* "$INSTALL_DIR/"
+    else
+      err "Could not find or build dist/. Aborting."
+      exit 1
     fi
   fi
 else
