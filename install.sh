@@ -76,7 +76,7 @@ ok "Node.js found: $(node --version)"
 
 # --- Step 1: Download ---
 info "Checking latest release..."
-LATEST=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null | grep '"tag_name"' | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+LATEST=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null | grep '"tag_name"' | head -1 | sed -E 's/.*"([^"]+)".*/\1/' || true)
 
 if [ -z "$LATEST" ]; then
   warn "No GitHub release found. Installing from main branch..."
@@ -102,7 +102,10 @@ if curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_DIR/cc-hud-extended.tar.gz" 2>/dev/null;
     else
       warn "Pre-built dist not found. Building from source..."
       if [ -f "$EXTRACTED/package.json" ]; then
-        (cd "$EXTRACTED" && npm install --production=false 2>/dev/null && npx tsc 2>/dev/null)
+        (cd "$EXTRACTED" && npm install --production=false 2>&1 && npx tsc 2>&1) || {
+          err "Build from source failed."
+          exit 1
+        }
         cp -r "$EXTRACTED/dist/"* "$INSTALL_DIR/"
       else
         err "Could not find or build dist/. Aborting."
