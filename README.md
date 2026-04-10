@@ -6,13 +6,14 @@ Adds custom information lines (GSD progress, system metrics, claude-mem state, a
 
 ## Features
 
-- **GSD line** — Shows project status, current task, context usage, and update availability. Works with or without `.planning/STATE.md`
+- **GSD line** — Project status, task, context usage, blockers, phase progress, and update availability
 - **System line** — Memory, CPU, and disk usage with color-coded thresholds
 - **Memory line** — Claude-mem observation counts, sessions, and worker state
 - **Custom lines** — Drop `.js` files in `~/.config/cc-hud-extended/lines/` to add your own
 - **claude-hud integration** — Wraps claude-hud output (if installed) and appends custom lines
 - **Standalone mode** — Works without claude-hud installed
 - **Fully configurable** — Colors, labels, visibility toggles per line
+- **Interactive install** — Choose which lines and components to enable
 
 ## Install
 
@@ -21,6 +22,8 @@ One command — no clone, no build:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nicolaslima/cc-hud-extended/main/install.sh | bash
 ```
+
+The installer will ask which lines and GSD components you want to enable.
 
 Then **restart Claude Code**. The HUD will appear below your input field.
 
@@ -58,14 +61,27 @@ Config file: `~/.config/cc-hud-extended/config.json` (or set `CC_HUD_CONFIG` env
     "gsd": {
       "enabled": true,
       "label": "gsd",
-      "colors": { "label": "#416a63", "executing": "#517243" },
+      "colors": { "label": "#416a63", "executing": "#517243", "warning": "#c0d18c", "critical": "#af7c84" },
       "showPhase": true,
       "showPlan": true,
       "showPercent": true,
       "showStatus": true,
+      "showMode": true,
       "showTask": true,
+      "showBlockers": true,
+      "showPendingTodos": true,
+      "showPhaseProgress": true,
+      "showLastActivity": true,
       "showContext": true,
       "showUpdates": true
+    },
+    "mem": {
+      "enabled": true,
+      "label": "mem",
+      "colors": { "label": "#416a63", "ok": "#416a63", "warning": "#c0d18c", "critical": "#af7c84" },
+      "showProject": true,
+      "showObservations": true,
+      "showState": true
     },
     "system": {
       "enabled": true,
@@ -74,19 +90,28 @@ Config file: `~/.config/cc-hud-extended/config.json` (or set `CC_HUD_CONFIG` env
       "showMemory": true,
       "showCpu": true,
       "showDisk": true
-    },
-    "mem": {
-      "enabled": true,
-      "label": "mem",
-      "colors": { "label": "#416a63", "ok": "#416a63" },
-      "showProject": true,
-      "showObservations": true,
-      "showState": true
     }
   },
   "lineOrder": ["gsd", "mem", "system"]
 }
 ```
+
+### GSD line components
+
+| Component | Config key | Source | Example |
+|---|---|---|---|
+| Phase | `showPhase` | `.planning/STATE.md` | `2 of 5 (Foundation)` |
+| Plan | `showPlan` | `.planning/STATE.md` | `plan 3/8` |
+| Percent | `showPercent` | `.planning/STATE.md` | `38%` |
+| Status | `showStatus` | `.planning/STATE.md` | `in progress`, `blocked` |
+| Mode | `showMode` | `.planning/config.json` | `interactive`, `autonomous` |
+| Task | `showTask` | `~/.claude/todos/` | `Fixing GSD visibility` |
+| Blockers | `showBlockers` | `.planning/STATE.md` | `2 blocked` |
+| Pending Todos | `showPendingTodos` | `.planning/todos/pending/` | `3 todos` |
+| Phase Progress | `showPhaseProgress` | `.planning/ROADMAP.md` | `▓▓▓▓░░░░░░ 2/5` |
+| Last Activity | `showLastActivity` | `.planning/STATE.md` | `3h` |
+| Context | `showContext` | Claude Code payload | `█████░░░░░ 30%` |
+| Updates | `showUpdates` | GSD update cache | `⬆ update`, `⚠ stale` |
 
 ### Color tokens
 

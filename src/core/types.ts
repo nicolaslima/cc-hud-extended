@@ -6,6 +6,8 @@ export interface StatuslinePayload {
   };
   workspace?: {
     current_dir?: string;
+    project_dir?: string;
+    added_dirs?: string[];
   };
   cwd?: string;
   session_id?: string;

@@ -23,7 +23,12 @@
       "showPlan": true,
       "showPercent": true,
       "showStatus": true,
+      "showMode": true,
       "showTask": true,
+      "showBlockers": true,
+      "showPendingTodos": true,
+      "showPhaseProgress": true,
+      "showLastActivity": true,
       "showContext": true,
       "showUpdates": true
     },
