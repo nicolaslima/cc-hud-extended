@@ -147,8 +147,10 @@ function parseState(statePath: string): ParsedState | null {
       content.match(/^Status:\s*(.+)$/m);
     const status = statusMatch ? statusMatch[1].trim().toLowerCase() : "unknown";
 
-    // Plan progress
-    const planMatch = content.match(/(\d+)\s*\([^)]*(\d+)\s+total/i) ||
+    // Plan progress — look for "Plan:" line specifically first
+    const planLineMatch = content.match(/^Plan:\s*(\d+)\s*(?:of|\/)\s*(\d+)/im) ||
+      content.match(/\*\*Plan:\*\*\s*(\d+)\s*(?:of|\/)\s*(\d+)/i);
+    const planMatch = planLineMatch || content.match(/(\d+)\s*\([^)]*(\d+)\s+total/i) ||
       content.match(/(\d+)\s+of\s+(\d+)/i);
     const plan = planMatch ? { current: Number(planMatch[1]), total: Number(planMatch[2]) } : null;
 
@@ -306,12 +308,12 @@ export const gsdLine: LineRenderer = {
       colorize(String(lineConfig.label || "gsd"), colors.label || "#416a63"),
     ];
 
-    // 1. Detect GSD project
+    // 1. Detect GSD project — only use payload-provided directories
+    // (process.cwd() would leak the shell's cwd in manual tests)
     const dirsToCheck = [
       payload.workspace?.project_dir,
       payload.workspace?.current_dir,
       payload.cwd,
-      process.cwd(),
     ].filter(Boolean) as string[];
     const projectRoot = dirsToCheck.reduce<string | null>((found, dir) => found || findProjectRoot(dir), null);
     const statePath = projectRoot ? path.join(projectRoot, ".planning", "STATE.md") : null;
@@ -341,7 +343,8 @@ export const gsdLine: LineRenderer = {
           segments.push(colorize(`${state.blockers.length} blocked`, colors.critical || "#af7c84"));
         }
       }
-    } else if (projectRoot) {
+    } else if (projectRoot && lineConfig.showPhase) {
+      // Fallback when no STATE.md: show project name instead of phase
       segments.push(secondary(getProjectName(projectRoot), config));
     }
 
