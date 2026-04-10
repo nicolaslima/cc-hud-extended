@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm install
+      - run: npm run build
+
+      - name: Verify build
+        run: test -f dist/index.js
+
+      - name: Create release archive
+        run: |
+          mkdir -p /tmp/release
+          cp -r dist/ /tmp/release/
+          cp config.example.json /tmp/release/
+          cp install.sh /tmp/release/
+          cp uninstall.sh /tmp/release/
+          cp README.md /tmp/release/
+          cd /tmp/release
+          tar -czf cc-hud-extended.tar.gz *
+          mv cc-hud-extended.tar.gz "$GITHUB_WORKSPACE/"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: cc-hud-extended.tar.gz
+          generate_release_notes: true

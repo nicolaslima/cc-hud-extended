@@ -14,37 +14,30 @@ Adds custom information lines (GSD progress, system metrics, claude-mem state, a
 - **Standalone mode** — Works without claude-hud installed
 - **Fully configurable** — Colors, labels, visibility toggles per line
 
-## Quick Start
+## Install
 
-### 1. Clone and build
+One command — no clone, no build:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nicolaslima/cc-hud-extended/main/install.sh | bash
+```
+
+Then **restart Claude Code**. The HUD will appear below your input field.
+
+### Uninstall
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nicolaslima/cc-hud-extended/main/uninstall.sh | bash
+```
+
+### Manual install (from source)
 
 ```bash
 git clone https://github.com/nicolaslima/cc-hud-extended.git
 cd cc-hud-extended
-npm install
-npm run build
-```
-
-### 2. Configure Claude Code
-
-Add to `~/.claude/settings.json`:
-
-```json
-{
-  "statusLine": {
-    "type": "command",
-    "command": "node /path/to/cc-hud-extended/dist/index.js"
-  }
-}
-```
-
-### 3. (Optional) Create config
-
-Copy the example config:
-
-```bash
-mkdir -p ~/.config/cc-hud-extended
-cp config.example.json ~/.config/cc-hud-extended/config.json
+npm install && npm run build
+# Then add to ~/.claude/settings.json:
+# "statusLine": { "type": "command", "command": "node /path/to/cc-hud-extended/dist/index.js" }
 ```
 
 ## Configuration
