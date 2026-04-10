@@ -363,12 +363,15 @@ STATUSLINE_CMD="${NODE_PATH} \"$INSTALL_DIR/index.js\""
 if [ -f "$SETTINGS_FILE" ]; then
   cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup.$(date +%Y%m%d%H%M%S)"
 
+  # Pre-compute JSON-safe statusline command string
+  STATUSLINE_JSON=$(node -e "console.log(JSON.stringify('$STATUSLINE_CMD'))" 2>/dev/null || echo "\"$STATUSLINE_CMD\"")
+
   if grep -q '"statusLine"' "$SETTINGS_FILE" 2>/dev/null; then
     node -e "
       const fs = require('fs');
       const s = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8'));
       s._statusLineBackup = s.statusLine || null;
-      s.statusLine = { type: 'command', command: $JSON.stringify($STATUSLINE_CMD) };
+      s.statusLine = { type: 'command', command: ${STATUSLINE_JSON} };
       fs.writeFileSync('$SETTINGS_FILE', JSON.stringify(s, null, 2) + '\n');
     " 2>/dev/null || {
       err "Failed to update settings.json."
@@ -385,7 +388,7 @@ if [ -f "$SETTINGS_FILE" ]; then
       const fs = require('fs');
       const s = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8'));
       s._statusLineBackup = null;
-      s.statusLine = { type: 'command', command: $JSON.stringify($STATUSLINE_CMD) };
+      s.statusLine = { type: 'command', command: ${STATUSLINE_JSON} };
       fs.writeFileSync('$SETTINGS_FILE', JSON.stringify(s, null, 2) + '\n');
     " 2>/dev/null || {
       err "Failed to update settings.json."
@@ -407,12 +410,11 @@ ok "Claude Code statusline configured"
 
 # --- Step 5: Verify ---
 info "Verifying installation..."
-if echo '{}' | node "$INSTALL_DIR/index.js" 2>/dev/null | grep -q "cc-hud-extended"; then
+VERIFY_OUTPUT=$(echo '{}' | node "$INSTALL_DIR/index.js" 2>/dev/null || true)
+if [ -n "$VERIFY_OUTPUT" ]; then
   ok "cc-hud-extended is working!"
 else
-  echo '{}' | node "$INSTALL_DIR/index.js" 2>/dev/null | head -1 | grep -q . && \
-    ok "cc-hud-extended is working!" || \
-    warn "Could not verify — please restart Claude Code and check manually"
+  warn "Could not verify — please restart Claude Code and check manually"
 fi
 
 # --- Summary ---
