@@ -4,15 +4,35 @@ Modular, extensible statusline extension for [Claude Code](https://code.claude.c
 
 Adds custom information lines (GSD progress, system metrics, claude-mem state, and more) alongside or without [claude-hud](https://github.com/jarrodwatts/claude-hud).
 
-## Quick Start
+## Screenshots
 
-Get running in **under 1 minute**:
+**Full GSD project with claude-hud**
+
+<img src="examples/scenario-full.png" width="600">
+
+**Primary GSD line only**
+
+<img src="examples/scenario-1.png" width="600">
+
+**Blocked project — pipe separator**
+
+<img src="examples/scenario-2.png" width="600">
+
+**No GSD project — system + mem only**
+
+<img src="examples/scenario-3.png" width="600">
+
+**Custom theme — amber labels, box separator**
+
+<img src="examples/scenario-4.png" width="600">
+
+## Quick Start
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/nicolaslima/cc-hud-extended/main/install.sh | bash
 ```
 
-The installer guides you through selecting which lines and components to enable, then restarts Claude Code. The HUD appears below your input field.
+The installer guides you through selecting which lines and components to enable, then restarts Claude Code.
 
 ## Prerequisites
 
@@ -60,22 +80,11 @@ Then add to `~/.claude/settings.json`:
 curl -fsSL https://raw.githubusercontent.com/nicolaslima/cc-hud-extended/main/uninstall.sh | bash
 ```
 
-## Features
-
-- **GSD line** — Core project status: phase, plan progress, status, current task, context usage
-- **GSD Detail line** — Supplementary project context: mode, blockers, pending todos, phase progress, last activity, updates
-- **System line** — Memory, CPU, and disk usage with color-coded thresholds
-- **Memory line** — Claude-mem observation counts, sessions, and worker state
-- **Custom lines** — Drop `.js` files in `~/.config/cc-hud-extended/lines/` to add your own
-- **claude-hud integration** — Wraps claude-hud output (if installed) and appends custom lines
-- **Standalone mode** — Works without claude-hud installed
-- **Interactive installer** — Choose which lines and components to enable during setup
-
 ## Configuration
 
 Config file: `~/.config/cc-hud-extended/config.json` (or set `CC_HUD_CONFIG` env var to a custom path).
 
-### Default configuration
+### Example: personalized config
 
 ```json
 {
@@ -91,18 +100,28 @@ Config file: `~/.config/cc-hud-extended/config.json` (or set `CC_HUD_CONFIG` env
     "gsd": {
       "enabled": true,
       "label": "gsd",
-      "colors": { "label": "#416a63", "executing": "#517243", "warning": "#c0d18c", "critical": "#af7c84" },
+      "colors": {
+        "label": "#416a63",
+        "executing": "#416a63",
+        "warning": "#c0d18c",
+        "critical": "#a23552"
+      },
       "showPhase": true,
       "showPlan": true,
       "showPercent": true,
       "showStatus": true,
       "showTask": true,
-      "showContext": true
+      "showContext": false
     },
     "gsd-detail": {
       "enabled": true,
       "label": "gsd",
-      "colors": { "label": "#416a63", "executing": "#517243", "warning": "#c0d18c", "critical": "#af7c84" },
+      "colors": {
+        "label": "#416a63",
+        "executing": "#416a63",
+        "warning": "#c0d18c",
+        "critical": "#a23552"
+      },
       "showMode": true,
       "showBlockers": true,
       "showPendingTodos": true,
@@ -113,15 +132,18 @@ Config file: `~/.config/cc-hud-extended/config.json` (or set `CC_HUD_CONFIG` env
     "mem": {
       "enabled": true,
       "label": "mem",
-      "colors": { "label": "#416a63", "ok": "#416a63", "warning": "#c0d18c", "critical": "#af7c84" },
+      "colors": { "label": "#416a63", "ok": "#416a63", "warning": "#c0d18c", "critical": "#a23552" },
       "showProject": true,
       "showObservations": true,
+      "showPrompts": true,
+      "showSessions": true,
+      "showLastActivity": true,
       "showState": true
     },
     "system": {
       "enabled": true,
       "label": "sys",
-      "colors": { "label": "#416a63", "warning": "#c0d18c", "critical": "#af7c84" },
+      "colors": { "label": "#416a63", "warning": "#c0d18c", "critical": "#a23552" },
       "showMemory": true,
       "showCpu": true,
       "showDisk": true
@@ -134,8 +156,6 @@ Config file: `~/.config/cc-hud-extended/config.json` (or set `CC_HUD_CONFIG` env
 ### GSD line (primary)
 
 Shows core project status — "where am I right now?"
-
-Each component can be toggled independently with `show*` config keys:
 
 | Component | Config key | Source | Example output |
 |---|---|---|---|
@@ -159,7 +179,7 @@ Shows supplementary project context — "what's around me?"
 | Last Activity | `showLastActivity` | `.planning/STATE.md` | `3h` / `2d` |
 | Updates | `showUpdates` | GSD update cache | `⬆ update` / `⚠ stale` |
 
-Status colors: `executing` (green), `planning`/`ready` (yellow), `blocked` (pink).
+Status colors: `executing` (green), `planning`/`ready` (yellow), `blocked` (red).
 
 ### Color tokens
 
@@ -196,20 +216,6 @@ module.exports = {
 
 Then add `"time"` to `lineOrder` in your config.
 
-## Line Renderer Interface
-
-Every line (built-in or custom) implements:
-
-```ts
-interface LineRenderer {
-  readonly id: string;
-  render(payload: StatuslinePayload, config: HudConfig): Promise<string | null>;
-}
-```
-
-- Return a string to display the line
-- Return `null` to skip the line
-
 ## Architecture
 
 ```
@@ -225,7 +231,7 @@ src/
     gsd.ts          # GSD primary line (phase, plan, status, task, context)
     gsd-detail.ts   # GSD detail line (mode, blockers, todos, progress, activity, updates)
     gsd-utils.ts    # Shared GSD utilities (project detection, STATE.md parsing, etc.)
-    system.ts        # System metrics line
+    system.ts       # System metrics line
     mem.ts          # Claude-mem line
   utils/
     ansi.ts         # Shared ANSI color utilities
