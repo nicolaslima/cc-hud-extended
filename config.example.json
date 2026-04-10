@@ -23,13 +23,23 @@
       "showPlan": true,
       "showPercent": true,
       "showStatus": true,
-      "showMode": true,
       "showTask": true,
+      "showContext": true
+    },
+    "gsd-detail": {
+      "enabled": true,
+      "label": "gsd",
+      "colors": {
+        "label": "#416a63",
+        "executing": "#517243",
+        "warning": "#c0d18c",
+        "critical": "#af7c84"
+      },
+      "showMode": true,
       "showBlockers": true,
       "showPendingTodos": true,
       "showPhaseProgress": true,
       "showLastActivity": true,
-      "showContext": true,
       "showUpdates": true
     },
     "mem": {
@@ -61,6 +71,6 @@
       "showDisk": true
     }
   },
-  "lineOrder": ["gsd", "mem", "system"],
+  "lineOrder": ["gsd", "gsd-detail", "mem", "system"],
   "customLinesDir": null
 }

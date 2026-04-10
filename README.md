@@ -12,7 +12,7 @@ Get running in **under 1 minute**:
 curl -fsSL https://raw.githubusercontent.com/nicolaslima/cc-hud-extended/main/install.sh | bash
 ```
 
-The installer guides you through selecting which lines and components to enable, then restart Claude Code. The HUD appears below your input field.
+The installer guides you through selecting which lines and components to enable, then restarts Claude Code. The HUD appears below your input field.
 
 ## Prerequisites
 
@@ -29,8 +29,8 @@ curl -fsSL https://raw.githubusercontent.com/nicolaslima/cc-hud-extended/main/in
 
 The installer will:
 1. Download the latest release from GitHub
-2. Ask which lines to enable (GSD, Memory, System)
-3. Ask which GSD components to show (Phase, Task, Blockers, etc.)
+2. Ask which lines to enable (GSD, GSD Detail, Memory, System)
+3. Ask which components to show per line
 4. Ask the display order of lines
 5. Configure `~/.claude/settings.json` automatically
 6. Display config file paths when done
@@ -62,7 +62,8 @@ curl -fsSL https://raw.githubusercontent.com/nicolaslima/cc-hud-extended/main/un
 
 ## Features
 
-- **GSD line** — Project phase, status, blockers, task, context usage, phase progress, and update availability
+- **GSD line** — Core project status: phase, plan progress, status, current task, context usage
+- **GSD Detail line** — Supplementary project context: mode, blockers, pending todos, phase progress, last activity, updates
 - **System line** — Memory, CPU, and disk usage with color-coded thresholds
 - **Memory line** — Claude-mem observation counts, sessions, and worker state
 - **Custom lines** — Drop `.js` files in `~/.config/cc-hud-extended/lines/` to add your own
@@ -95,13 +96,18 @@ Config file: `~/.config/cc-hud-extended/config.json` (or set `CC_HUD_CONFIG` env
       "showPlan": true,
       "showPercent": true,
       "showStatus": true,
-      "showMode": true,
       "showTask": true,
+      "showContext": true
+    },
+    "gsd-detail": {
+      "enabled": true,
+      "label": "gsd",
+      "colors": { "label": "#416a63", "executing": "#517243", "warning": "#c0d18c", "critical": "#af7c84" },
+      "showMode": true,
       "showBlockers": true,
       "showPendingTodos": true,
       "showPhaseProgress": true,
       "showLastActivity": true,
-      "showContext": true,
       "showUpdates": true
     },
     "mem": {
@@ -121,11 +127,13 @@ Config file: `~/.config/cc-hud-extended/config.json` (or set `CC_HUD_CONFIG` env
       "showDisk": true
     }
   },
-  "lineOrder": ["gsd", "mem", "system"]
+  "lineOrder": ["gsd", "gsd-detail", "mem", "system"]
 }
 ```
 
-### GSD line components
+### GSD line (primary)
+
+Shows core project status — "where am I right now?"
 
 Each component can be toggled independently with `show*` config keys:
 
@@ -135,13 +143,20 @@ Each component can be toggled independently with `show*` config keys:
 | Plan | `showPlan` | `.planning/STATE.md` | `plan 3/8` |
 | Percent | `showPercent` | `.planning/STATE.md` | `38%` |
 | Status | `showStatus` | `.planning/STATE.md` | `in progress` / `blocked` |
-| Mode | `showMode` | `.planning/config.json` | `interactive` / `autonomous` |
 | Task | `showTask` | `~/.claude/todos/` | `Fixing GSD visibility` |
+| Context | `showContext` | Claude Code payload | `█████░░░░░ 30%` |
+
+### GSD Detail line (secondary)
+
+Shows supplementary project context — "what's around me?"
+
+| Component | Config key | Source | Example output |
+|---|---|---|---|
+| Mode | `showMode` | `.planning/config.json` | `interactive` / `autonomous` |
 | Blockers | `showBlockers` | `.planning/STATE.md` | `2 blocked` |
 | Pending Todos | `showPendingTodos` | `.planning/todos/pending/` | `3 todos` |
 | Phase Progress | `showPhaseProgress` | `.planning/ROADMAP.md` | `▓▓▓▓░░░░░░ 2/5` |
 | Last Activity | `showLastActivity` | `.planning/STATE.md` | `3h` / `2d` |
-| Context | `showContext` | Claude Code payload | `█████░░░░░ 30%` |
 | Updates | `showUpdates` | GSD update cache | `⬆ update` / `⚠ stale` |
 
 Status colors: `executing` (green), `planning`/`ready` (yellow), `blocked` (pink).
@@ -155,7 +170,7 @@ Colors support hex values (`#416a63`) or named tokens (`dim`, `bold`).
 Change the `lineOrder` array to reorder lines:
 
 ```json
-{ "lineOrder": ["system", "gsd", "mem"] }
+{ "lineOrder": ["gsd", "gsd-detail", "system", "mem"] }
 ```
 
 ## Custom Lines
@@ -207,12 +222,18 @@ src/
     base-hud.ts     # claude-hud bridge (optional)
   lines/
     index.ts        # Line registry and custom line loader
-    gsd.ts          # GSD progress line
-    system.ts       # System metrics line
+    gsd.ts          # GSD primary line (phase, plan, status, task, context)
+    gsd-detail.ts   # GSD detail line (mode, blockers, todos, progress, activity, updates)
+    gsd-utils.ts    # Shared GSD utilities (project detection, STATE.md parsing, etc.)
+    system.ts        # System metrics line
     mem.ts          # Claude-mem line
   utils/
     ansi.ts         # Shared ANSI color utilities
 ```
+
+## Backward Compatibility
+
+Existing configs without `gsd-detail` will automatically use the defaults (all detail components enabled). The `gsd` line config is also backward-compatible — any `show*` flags that were moved to `gsd-detail` (like `showMode`, `showBlockers`, etc.) are simply ignored if present in the `gsd` config block.
 
 ## License
 

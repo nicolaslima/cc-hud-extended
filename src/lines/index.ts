@@ -7,11 +7,12 @@ import fs from "node:fs";
 import path from "node:path";
 import type { LineRenderer, HudConfig } from "../core/types.js";
 import { gsdLine } from "./gsd.js";
+import { gsdDetailLine } from "./gsd-detail.js";
 import { systemLine } from "./system.js";
 import { memLine } from "./mem.js";
 
 /** Built-in line renderers */
-const BUILT_IN_LINES: LineRenderer[] = [gsdLine, memLine, systemLine];
+const BUILT_IN_LINES: LineRenderer[] = [gsdLine, gsdDetailLine, memLine, systemLine];
 
 /** Load custom line renderers from a directory */
 function loadCustomLines(dir: string): LineRenderer[] {

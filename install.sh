@@ -134,13 +134,24 @@ echo -e "${BOLD}Which lines should be enabled?${RESET}"
 echo ""
 
 GSD_ENABLED=y
+GSD_DETAIL_ENABLED=y
 MEM_ENABLED=y
 SYS_ENABLED=y
 
-if prompt_yesno "  GSD line — project status, task, context usage?" "y"; then
+if prompt_yesno "  GSD line — project phase, status, task, context?" "y"; then
   GSD_ENABLED=y
 else
   GSD_ENABLED=n
+fi
+
+if [ "$GSD_ENABLED" = "y" ]; then
+  if prompt_yesno "  GSD detail line — mode, blockers, todos, phase progress, activity, updates?" "y"; then
+    GSD_DETAIL_ENABLED=y
+  else
+    GSD_DETAIL_ENABLED=n
+  fi
+else
+  GSD_DETAIL_ENABLED=n
 fi
 
 if prompt_yesno "  Memory line — claude-mem observations and sessions?" "y"; then
@@ -155,38 +166,48 @@ else
   SYS_ENABLED=n
 fi
 
-# GSD component selection
+# GSD primary components
 GSD_SHOW_PHASE=true
 GSD_SHOW_PLAN=true
 GSD_SHOW_PERCENT=true
 GSD_SHOW_STATUS=true
-GSD_SHOW_MODE=true
 GSD_SHOW_TASK=true
-GSD_SHOW_BLOCKERS=true
-GSD_SHOW_PENDING_TODOS=true
-GSD_SHOW_PHASE_PROGRESS=true
-GSD_SHOW_LAST_ACTIVITY=true
 GSD_SHOW_CONTEXT=true
-GSD_SHOW_UPDATES=true
 
 if [ "$GSD_ENABLED" = "y" ]; then
   echo ""
-  echo -e "${BOLD}GSD line components:${RESET}"
-  echo -e "  ${DIM}Choose which data points to show in the GSD status line.${RESET}"
+  echo -e "${BOLD}GSD line components (primary status):${RESET}"
+  echo -e "  ${DIM}Core project position and action data.${RESET}"
   echo ""
 
   if prompt_yesno "  Phase (e.g. \"2 of 5 (Foundation)\")" "y"; then GSD_SHOW_PHASE=true; else GSD_SHOW_PHASE=false; fi
   if prompt_yesno "  Plan progress (e.g. \"plan 3/8\")" "y"; then GSD_SHOW_PLAN=true; else GSD_SHOW_PLAN=false; fi
   if prompt_yesno "  Percent complete (e.g. \"38%\")" "y"; then GSD_SHOW_PERCENT=true; else GSD_SHOW_PERCENT=false; fi
   if prompt_yesno "  Status (e.g. \"in progress\", \"blocked\")" "y"; then GSD_SHOW_STATUS=true; else GSD_SHOW_STATUS=false; fi
-  if prompt_yesno "  Mode (e.g. \"interactive\", \"autonomous\")" "y"; then GSD_SHOW_MODE=true; else GSD_SHOW_MODE=false; fi
   if prompt_yesno "  Current task (from Claude Code todos)" "y"; then GSD_SHOW_TASK=true; else GSD_SHOW_TASK=false; fi
-  if prompt_yesno "  Blockers count (e.g. \"2 blocked\")" "y"; then GSD_SHOW_BLOCKERS=true; else GSD_SHOW_BLOCKERS=false; fi
-  if prompt_yesno "  Pending todos count (e.g. \"3 todos\")" "y"; then GSD_SHOW_PENDING_TODOS=true; else GSD_SHOW_PENDING_TODOS=false; fi
-  if prompt_yesno "  Phase progress bar (e.g. \"▓▓▓▓░░░░░░ 2/5\")" "y"; then GSD_SHOW_PHASE_PROGRESS=true; else GSD_SHOW_PHASE_PROGRESS=false; fi
-  if prompt_yesno "  Last activity time (e.g. \"3h ago\")" "y"; then GSD_SHOW_LAST_ACTIVITY=true; else GSD_SHOW_LAST_ACTIVITY=false; fi
   if prompt_yesno "  Context usage bar (e.g. \"█████░░░░░ 30%\")" "y"; then GSD_SHOW_CONTEXT=true; else GSD_SHOW_CONTEXT=false; fi
-  if prompt_yesno "  GSD update warnings (⬆ update, ⚠ stale)" "y"; then GSD_SHOW_UPDATES=true; else GSD_SHOW_UPDATES=false; fi
+fi
+
+# GSD detail components
+GSD_DETAIL_SHOW_MODE=true
+GSD_DETAIL_SHOW_BLOCKERS=true
+GSD_DETAIL_SHOW_PENDING_TODOS=true
+GSD_DETAIL_SHOW_PHASE_PROGRESS=true
+GSD_DETAIL_SHOW_LAST_ACTIVITY=true
+GSD_DETAIL_SHOW_UPDATES=true
+
+if [ "$GSD_DETAIL_ENABLED" = "y" ]; then
+  echo ""
+  echo -e "${BOLD}GSD detail line components (supplementary context):${RESET}"
+  echo -e "  ${DIM}Additional project health and progress data.${RESET}"
+  echo ""
+
+  if prompt_yesno "  Mode (e.g. \"interactive\", \"autonomous\")" "y"; then GSD_DETAIL_SHOW_MODE=true; else GSD_DETAIL_SHOW_MODE=false; fi
+  if prompt_yesno "  Blockers count (e.g. \"2 blocked\")" "y"; then GSD_DETAIL_SHOW_BLOCKERS=true; else GSD_DETAIL_SHOW_BLOCKERS=false; fi
+  if prompt_yesno "  Pending todos count (e.g. \"3 todos\")" "y"; then GSD_DETAIL_SHOW_PENDING_TODOS=true; else GSD_DETAIL_SHOW_PENDING_TODOS=false; fi
+  if prompt_yesno "  Phase progress bar (e.g. \"▓▓▓▓░░░░░░ 2/5\")" "y"; then GSD_DETAIL_SHOW_PHASE_PROGRESS=true; else GSD_DETAIL_SHOW_PHASE_PROGRESS=false; fi
+  if prompt_yesno "  Last activity time (e.g. \"3h\")" "y"; then GSD_DETAIL_SHOW_LAST_ACTIVITY=true; else GSD_DETAIL_SHOW_LAST_ACTIVITY=false; fi
+  if prompt_yesno "  GSD update warnings (⬆ update, ⚠ stale)" "y"; then GSD_DETAIL_SHOW_UPDATES=true; else GSD_DETAIL_SHOW_UPDATES=false; fi
 fi
 
 # Line order
@@ -196,18 +217,19 @@ echo -e "  ${DIM}Which line should appear first?${RESET}"
 echo ""
 
 LINE_ORDER=""
-if [ "$GSD_ENABLED" = "y" ] && [ "$MEM_ENABLED" = "y" ] && [ "$SYS_ENABLED" = "y" ]; then
-  CHOICE=$(prompt_choice "Line order:" "1" "gsd → mem → system" "mem → gsd → system" "system → gsd → mem")
+if [ "$GSD_ENABLED" = "y" ] && [ "$GSD_DETAIL_ENABLED" = "y" ] && [ "$MEM_ENABLED" = "y" ] && [ "$SYS_ENABLED" = "y" ]; then
+  CHOICE=$(prompt_choice "Line order:" "1" "gsd → gsd-detail → mem → system" "mem → gsd → gsd-detail → system" "system → gsd → gsd-detail → mem")
   case "$CHOICE" in
-    1) LINE_ORDER='"gsd", "mem", "system"' ;;
-    2) LINE_ORDER='"mem", "gsd", "system"' ;;
-    3) LINE_ORDER='"system", "gsd", "mem"' ;;
-    *) LINE_ORDER='"gsd", "mem", "system"' ;;
+    1) LINE_ORDER='"gsd", "gsd-detail", "mem", "system"' ;;
+    2) LINE_ORDER='"mem", "gsd", "gsd-detail", "system"' ;;
+    3) LINE_ORDER='"system", "gsd", "gsd-detail", "mem"' ;;
+    *) LINE_ORDER='"gsd", "gsd-detail", "mem", "system"' ;;
   esac
 else
   # Build order from enabled lines
   ORDER_PARTS=""
   if [ "$GSD_ENABLED" = "y" ]; then ORDER_PARTS="${ORDER_PARTS}\"gsd\", "; fi
+  if [ "$GSD_DETAIL_ENABLED" = "y" ]; then ORDER_PARTS="${ORDER_PARTS}\"gsd-detail\", "; fi
   if [ "$MEM_ENABLED" = "y" ]; then ORDER_PARTS="${ORDER_PARTS}\"mem\", "; fi
   if [ "$SYS_ENABLED" = "y" ]; then ORDER_PARTS="${ORDER_PARTS}\"system\", "; fi
   LINE_ORDER=$(echo "$ORDER_PARTS" | sed 's/, $//')
@@ -228,16 +250,28 @@ if [ "$GSD_ENABLED" = "y" ]; then
       "showPlan": $GSD_SHOW_PLAN,
       "showPercent": $GSD_SHOW_PERCENT,
       "showStatus": $GSD_SHOW_STATUS,
-      "showMode": $GSD_SHOW_MODE,
       "showTask": $GSD_SHOW_TASK,
-      "showBlockers": $GSD_SHOW_BLOCKERS,
-      "showPendingTodos": $GSD_SHOW_PENDING_TODOS,
-      "showPhaseProgress": $GSD_SHOW_PHASE_PROGRESS,
-      "showLastActivity": $GSD_SHOW_LAST_ACTIVITY,
-      "showContext": $GSD_SHOW_CONTEXT,
-      "showUpdates": $GSD_SHOW_UPDATES
+      "showContext": $GSD_SHOW_CONTEXT
     }
 GSDJSON
+)
+fi
+
+GSD_DETAIL_BLOCK=""
+if [ "$GSD_DETAIL_ENABLED" = "y" ]; then
+  GSD_DETAIL_BLOCK=$(cat <<GSDDETAILJSON
+    "gsd-detail": {
+      "enabled": true,
+      "label": "gsd",
+      "colors": { "label": "#416a63", "executing": "#517243", "warning": "#c0d18c", "critical": "#af7c84" },
+      "showMode": $GSD_DETAIL_SHOW_MODE,
+      "showBlockers": $GSD_DETAIL_SHOW_BLOCKERS,
+      "showPendingTodos": $GSD_DETAIL_SHOW_PENDING_TODOS,
+      "showPhaseProgress": $GSD_DETAIL_SHOW_PHASE_PROGRESS,
+      "showLastActivity": $GSD_DETAIL_SHOW_LAST_ACTIVITY,
+      "showUpdates": $GSD_DETAIL_SHOW_UPDATES
+    }
+GSDDETAILJSON
 )
 fi
 
@@ -273,6 +307,12 @@ LINES_CONTENT=""
 SEPARATOR=","
 if [ "$GSD_ENABLED" = "y" ]; then
   LINES_CONTENT="${GSD_BLOCK}"
+fi
+if [ "$GSD_DETAIL_ENABLED" = "y" ]; then
+  if [ -n "$LINES_CONTENT" ]; then
+    LINES_CONTENT="${LINES_CONTENT}${SEPARATOR}"
+  fi
+  LINES_CONTENT="${LINES_CONTENT}${GSD_DETAIL_BLOCK}"
 fi
 if [ "$MEM_ENABLED" = "y" ]; then
   if [ -n "$LINES_CONTENT" ]; then
@@ -373,15 +413,16 @@ echo -e "${BOLD}═════════════════════�
 echo -e "${GREEN}  cc-hud-extended $LATEST installed successfully!${RESET}"
 echo -e "${BOLD}════════════════════════════════════════════════════════${RESET}"
 echo ""
-echo -e "  ${DIM}Install dir:${RESET}  $INSTALL_DIR"
-echo -e "  ${DIM}Config:${RESET}       $CONFIG_DIR/config.json"
-echo -e "  ${DIM}Custom lines:${RESET} $CONFIG_DIR/lines/"
-echo -e "  ${DIM}Settings:${RESET}     $SETTINGS_FILE"
+echo -e "  ${DIM}Install dir:${RESET}    $INSTALL_DIR"
+echo -e "  ${DIM}Config:${RESET}         $CONFIG_DIR/config.json"
+echo -e "  ${DIM}Custom lines:${RESET}   $CONFIG_DIR/lines/"
+echo -e "  ${DIM}Settings:${RESET}       $SETTINGS_FILE"
 echo ""
 echo -e "  ${BOLD}Configuration:${RESET}"
-echo -e "  ${DIM}GSD line:${RESET}     $([ "$GSD_ENABLED" = "y" ] && echo "enabled" || echo "disabled")"
-echo -e "  ${DIM}Memory line:${RESET}  $([ "$MEM_ENABLED" = "y" ] && echo "enabled" || echo "disabled")"
-echo -e "  ${DIM}System line:${RESET}  $([ "$SYS_ENABLED" = "y" ] && echo "enabled" || echo "disabled")"
+echo -e "  ${DIM}GSD line:${RESET}       $([ "$GSD_ENABLED" = "y" ] && echo "enabled" || echo "disabled")"
+echo -e "  ${DIM}GSD detail line:${RESET} $([ "$GSD_DETAIL_ENABLED" = "y" ] && echo "enabled" || echo "disabled")"
+echo -e "  ${DIM}Memory line:${RESET}     $([ "$MEM_ENABLED" = "y" ] && echo "enabled" || echo "disabled")"
+echo -e "  ${DIM}System line:${RESET}     $([ "$SYS_ENABLED" = "y" ] && echo "enabled" || echo "disabled")"
 echo ""
 echo -e "  ${BOLD}Next steps:${RESET}"
 echo -e "  1. ${BOLD}Restart Claude Code${RESET} — quit and run 'claude' again"
