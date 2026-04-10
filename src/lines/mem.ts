@@ -1,6 +1,7 @@
 /**
  * Claude-mem line renderer.
  * Shows memory/observation counts and worker state from claude-mem.
+ * Uses aggressive timeouts to stay within the statusline render budget.
  */
 
 import fs from "node:fs";
@@ -39,6 +40,8 @@ const DEFAULTS: MemLineConfig = {
 
 const WORKER_BASE_URL = process.env.CC_HUD_MEM_WORKER_URL || "http://127.0.0.1:37777";
 const DATA_DIR = process.env.CC_HUD_MEM_DATA_DIR || path.join(os.homedir(), ".claude-mem");
+const SUBPROCESS_TIMEOUT = 500;
+const FETCH_TIMEOUT = 500;
 
 const SQLITE_METRICS_SCRIPT = `
 import { Database } from "bun:sqlite";
@@ -92,7 +95,7 @@ function getCounts(currentDir: string): Counts | null {
 
     const raw = execFileSync("bun", [script, currentDir], {
       encoding: "utf8",
-      timeout: 800,
+      timeout: SUBPROCESS_TIMEOUT,
       stdio: ["ignore", "pipe", "ignore"],
     });
 
@@ -105,7 +108,7 @@ function getCounts(currentDir: string): Counts | null {
       try {
         const extraRaw = execFileSync("bun", ["-e", SQLITE_METRICS_SCRIPT, dbPath, project], {
           encoding: "utf8",
-          timeout: 800,
+          timeout: SUBPROCESS_TIMEOUT,
           stdio: ["ignore", "pipe", "ignore"],
         });
         extra = JSON.parse(extraRaw);
@@ -130,8 +133,8 @@ interface WorkerState {
 async function getWorkerState(): Promise<WorkerState | null> {
   try {
     const [processing, queue] = await Promise.all([
-      fetch(`${WORKER_BASE_URL}/api/processing-status`, { signal: AbortSignal.timeout(800) }).then(r => r.json()),
-      fetch(`${WORKER_BASE_URL}/api/pending-queue`, { signal: AbortSignal.timeout(800) }).then(r => r.json()),
+      fetch(`${WORKER_BASE_URL}/api/processing-status`, { signal: AbortSignal.timeout(FETCH_TIMEOUT) }).then(r => r.json()),
+      fetch(`${WORKER_BASE_URL}/api/pending-queue`, { signal: AbortSignal.timeout(FETCH_TIMEOUT) }).then(r => r.json()),
     ]);
     return { processing: processing as WorkerState["processing"], queue: queue as WorkerState["queue"] };
   } catch { return null; }
@@ -164,11 +167,14 @@ export const memLine: LineRenderer = {
 
     const colors = lineConfig.colors || {};
     const currentDir = payload.workspace?.current_dir || payload.cwd || process.cwd();
-    const counts = getCounts(currentDir);
-    if (!counts) return null;
 
-    let workerState: WorkerState | null = null;
-    try { workerState = await getWorkerState(); } catch { /* no worker */ }
+    // Run counts and worker state in parallel
+    const [counts, workerState] = await Promise.all([
+      Promise.resolve(getCounts(currentDir)),
+      getWorkerState().catch(() => null),
+    ]);
+
+    if (!counts) return null;
 
     const hasSignal = counts.observations > 0 || counts.prompts > 0 || counts.sessions > 0 || workerState;
     if (!hasSignal) return null;

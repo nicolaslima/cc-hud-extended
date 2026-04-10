@@ -20,6 +20,9 @@ import { getAllLines } from "./lines/index.js";
 import { renderBaseHud, filterBaseHud, isClaudeHudAvailable } from "./core/base-hud.js";
 import type { StatuslinePayload, HudConfig } from "./core/types.js";
 
+/** Maximum time for the entire render cycle (ms) */
+const RENDER_TIMEOUT_MS = 800;
+
 function safeJsonParse(value: string, fallback: unknown): unknown {
   try {
     return JSON.parse(value);
@@ -39,9 +42,19 @@ async function main(): Promise<void> {
   const payload = safeJsonParse(rawInput, {}) as StatuslinePayload;
   const config = loadConfig();
 
-  // 1. Render base claude-hud if available and enabled
+  // Wrap entire render in a timeout guard
+  const output = await Promise.race([
+    renderOutput(payload, config, rawInput),
+    timeout(),
+  ]);
+
+  process.stdout.write(output);
+}
+
+async function renderOutput(payload: StatuslinePayload, config: HudConfig, rawInput: string): Promise<string> {
   const outputLines: string[] = [];
 
+  // 1. Render base claude-hud if available and enabled
   if (config.baseHud?.enabled !== false && isClaudeHudAvailable()) {
     const baseOutput = renderBaseHud(rawInput);
     if (baseOutput) {
@@ -50,8 +63,8 @@ async function main(): Promise<void> {
     }
   }
 
-  // 2. Render all line modules in order
-  const lines = getAllLines(config);
+  // 2. Render all line modules in order (parallelized)
+  const lines = await getAllLines(config);
   const renderedLines = await Promise.all(
     lines.map(line => line.render(payload, config).catch(() => null))
   );
@@ -60,12 +73,17 @@ async function main(): Promise<void> {
     if (line) outputLines.push(line);
   }
 
-  // 3. Output
-  process.stdout.write(outputLines.join("\n"));
+  return outputLines.join("\n");
+}
+
+function timeout(): Promise<string> {
+  return new Promise(resolve => {
+    setTimeout(() => resolve(""), RENDER_TIMEOUT_MS);
+  });
 }
 
 main().catch((error: unknown) => {
   const msg = error instanceof Error ? error.message : "unknown error";
-  process.stdout.write(`[cc-hud-extended] ${msg}`);
+  process.stderr.write(`[cc-hud-extended] ${msg}\n`);
   process.exitCode = 1;
 });

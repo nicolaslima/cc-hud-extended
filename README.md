@@ -52,8 +52,10 @@ The installer will:
 2. Ask which lines to enable (GSD, GSD Detail, Memory, System)
 3. Ask which components to show per line
 4. Ask the display order of lines
-5. Configure `~/.claude/settings.json` automatically
-6. Display config file paths when done
+5. Ask about auto-refresh (recommended for system/mem lines)
+6. Ask about status line padding
+7. Configure `~/.claude/settings.json` automatically
+8. Display config file paths when done
 
 ### Manual install (from source)
 
@@ -69,7 +71,9 @@ Then add to `~/.claude/settings.json`:
 {
   "statusLine": {
     "type": "command",
-    "command": "node /path/to/cc-hud-extended/dist/index.js"
+    "command": "node /path/to/cc-hud-extended/dist/index.js",
+    "refreshInterval": 30,
+    "padding": 2
   }
 }
 ```
@@ -153,6 +157,19 @@ Config file: `~/.config/cc-hud-extended/config.json` (or set `CC_HUD_CONFIG` env
 }
 ```
 
+### StatusLine settings
+
+The `statusLine` object in `~/.claude/settings.json` supports:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | `"command"` | Must be `"command"` |
+| `command` | string | Path to the script to run |
+| `refreshInterval` | number | Re-run command every N seconds during idle (min 1) |
+| `padding` | number | Extra horizontal spacing in characters (default 0) |
+
+Setting `refreshInterval` is recommended when using system or memory lines, since CPU/memory data changes over time even when Claude Code is idle.
+
 ### GSD line (primary)
 
 Shows core project status — "where am I right now?"
@@ -216,26 +233,67 @@ module.exports = {
 
 Then add `"time"` to `lineOrder` in your config.
 
+### Available payload fields
+
+Your custom line receives the full Claude Code statusline payload. Key fields:
+
+| Field | Description |
+|-------|-------------|
+| `model.id`, `model.display_name` | Current model |
+| `workspace.current_dir`, `workspace.project_dir` | Working and project directories |
+| `workspace.added_dirs` | Directories added via `/add-dir` |
+| `workspace.git_worktree` | Git worktree name (when in a worktree) |
+| `session_id`, `session_name` | Session identifier and custom name |
+| `version` | Claude Code version |
+| `output_style.name` | Current output style |
+| `cost.total_cost_usd` | Total session cost in USD |
+| `cost.total_duration_ms`, `cost.total_api_duration_ms` | Elapsed time and API time |
+| `cost.total_lines_added`, `cost.total_lines_removed` | Lines of code changed |
+| `context_window.used_percentage`, `context_window.remaining_percentage` | Context usage (may be null) |
+| `context_window.context_window_size` | Max context size in tokens |
+| `context_window.current_usage` | Token counts from last API call (may be null) |
+| `context_window.total_input_tokens`, `context_window.total_output_tokens` | Cumulative token counts |
+| `exceeds_200k_tokens` | Whether total tokens exceed 200k |
+| `rate_limits.five_hour.used_percentage`, `rate_limits.seven_day.used_percentage` | Rate limit usage (may be absent) |
+| `vim.mode` | Current vim mode (`NORMAL` or `INSERT`, when vim mode is on) |
+| `agent.name` | Agent name (when running with `--agent`) |
+| `worktree.name`, `worktree.path`, `worktree.branch` | Worktree info (when in a worktree session) |
+
 ## Architecture
 
 ```
 src/
-  index.ts          # Entry point: reads stdin, renders all lines
+  index.ts          # Entry point: reads stdin, renders all lines (with 800ms timeout guard)
   core/
     types.ts        # Shared types (StatuslinePayload, LineRenderer, HudConfig)
     config.ts       # Config loader with layered defaults
-    stdin.ts        # Stdin reader with timeout guard
-    base-hud.ts     # claude-hud bridge (optional)
+    stdin.ts        # Stdin reader with 3s timeout guard
+    base-hud.ts     # claude-hud bridge (optional, 2s timeout)
   lines/
-    index.ts        # Line registry and custom line loader
+    index.ts        # Line registry and custom line loader (async import)
     gsd.ts          # GSD primary line (phase, plan, status, task, context)
     gsd-detail.ts   # GSD detail line (mode, blockers, todos, progress, activity, updates)
     gsd-utils.ts    # Shared GSD utilities (project detection, STATE.md parsing, etc.)
-    system.ts       # System metrics line
-    mem.ts          # Claude-mem line
+    system.ts       # System metrics line (with CPU cache for performance)
+    mem.ts          # Claude-mem line (with parallel I/O for performance)
   utils/
-    ansi.ts         # Shared ANSI color utilities
+    ansi.ts         # Shared ANSI color utilities + OSC 8 hyperlinks
+test/
+  test.mjs         # Test suite (run with: npm test)
 ```
+
+## What's New in v1.1.0
+
+- **Complete StatuslinePayload**: All official Claude Code fields now available (rate_limits, session_name, agent, worktree, version, exceeds_200k_tokens, etc.)
+- **Performance**: 800ms render timeout guard, CPU sampling cache (5s TTL), parallel I/O in mem line, reduced base-hud timeout to 2s
+- **Custom lines ESM fix**: Dynamic `import()` with `pathToFileURL` instead of broken `require()`
+- **Errors to stderr**: Error messages no longer appear in the statusline
+- **OSC 8 hyperlinks**: Clickable links in terminals that support them (iTerm2, Kitty, WezTerm)
+- **System line fallback**: Shows `—` placeholder instead of disappearing when metrics unavailable
+- **refreshInterval support**: Installer now offers auto-refresh for system/mem lines
+- **Padding support**: Installer now offers horizontal padding configuration
+- **Test suite**: 34 tests covering ANSI utilities, config, line renderers, and utils
+- **Shell safety**: Improved JSON escaping in install script
 
 ## Backward Compatibility
 

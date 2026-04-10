@@ -1,6 +1,6 @@
 {
   "name": "cc-hud-extended",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Modular, extensible statusline extension for Claude Code — adds custom lines (GSD, memory, system, and more) alongside or without claude-hud",
   "main": "dist/index.js",
   "bin": {
@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
-    "test": "node --test dist/**/*.test.js 2>/dev/null || echo 'no tests yet'"
+    "test": "npm run build && node --test test/test.mjs"
   },
   "keywords": ["claude-code", "statusline", "hud", "gsd", "claude-mem", "extension"],
   "author": "Nicolas Lima",

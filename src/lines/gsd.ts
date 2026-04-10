@@ -7,7 +7,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { StatuslinePayload, HudConfig, LineRenderer, LineConfig, LineColors } from "../core/types.js";
-import { colorize, secondary, joinSegments } from "../utils/ansi.js";
+import { colorize, secondary, joinSegments, link } from "../utils/ansi.js";
 import { getLineConfig } from "../core/config.js";
 import {
   resolveProjectRoot,
@@ -76,8 +76,8 @@ export const gsdLine: LineRenderer = {
         }
       }
     } else if (projectRoot && lineConfig.showPhase) {
-      // Fallback when no STATE.md: show project name instead of phase
-      segments.push(secondary(getProjectName(projectRoot), config));
+      // Fallback when no STATE.md: show project name as clickable link instead of phase
+      segments.push(secondary(link(getProjectName(projectRoot), `file://${projectRoot}`), config));
     }
 
     // 3. Current task from Claude Code's todos

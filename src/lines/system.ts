@@ -1,6 +1,7 @@
 /**
  * System metrics line renderer.
  * Shows memory, CPU, and disk usage with color-coded thresholds.
+ * CPU sampling is cached with a 5s TTL to avoid 150ms latency per render.
  */
 
 import fs from "node:fs";
@@ -59,11 +60,16 @@ function metricSegment(label: string, value: string, level: string, colors: Line
   return `${secondary(label, config)} ${colorize(value, resolveMetricColor(level, colors))}`;
 }
 
+// --- CPU cache to avoid 150ms sampling on every render ---
+
+const CPU_CACHE_TTL_MS = 5000;
+let cpuCache: { percent: number; timestamp: number } | null = null;
+
 // --- Platform-specific metrics ---
 
 function getDarwinMemoryMetrics(): { memory: string; memoryPercent: number } | null {
   try {
-    const raw = execFileSync("vm_stat", [], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    const raw = execFileSync("vm_stat", [], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 2000 });
     const pageSizeMatch = raw.match(/page size of (\d+) bytes/);
     const pageSize = pageSizeMatch ? Number(pageSizeMatch[1]) : 0;
     if (!pageSize) return null;
@@ -101,6 +107,11 @@ function getLinuxMemoryMetrics(): { memory: string; memoryPercent: number } | nu
 }
 
 async function sampleCpuUsage(): Promise<number> {
+  // Return cached value if still fresh
+  if (cpuCache && (Date.now() - cpuCache.timestamp) < CPU_CACHE_TTL_MS) {
+    return cpuCache.percent;
+  }
+
   const start = os.cpus().map(c => ({ ...c.times }));
   await new Promise(resolve => setTimeout(resolve, 150));
   const end = os.cpus().map(c => ({ ...c.times }));
@@ -114,12 +125,15 @@ async function sampleCpuUsage(): Promise<number> {
     idle += idleDelta;
     total += totalDelta;
   }
-  return total <= 0 ? 0 : ((total - idle) / total) * 100;
+
+  const percent = total <= 0 ? 0 : ((total - idle) / total) * 100;
+  cpuCache = { percent, timestamp: Date.now() };
+  return percent;
 }
 
 function getDiskUsage(currentDir: string): number {
   try {
-    const raw = execFileSync("df", ["-k", currentDir || process.cwd()], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    const raw = execFileSync("df", ["-k", currentDir || process.cwd()], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 2000 });
     const row = raw.trim().split("\n").at(-1) || "";
     const columns = row.trim().split(/\s+/);
     return Number((columns[4] || "0").replace("%", "")) || 0;
@@ -127,6 +141,7 @@ function getDiskUsage(currentDir: string): number {
 }
 
 async function getMetrics(currentDir: string): Promise<Metrics | null> {
+  // Parallelize: memory + disk can run concurrently, CPU is cached
   const memMetrics = process.platform === "darwin" ? getDarwinMemoryMetrics() :
     process.platform === "linux" ? getLinuxMemoryMetrics() : null;
 
@@ -139,8 +154,11 @@ async function getMetrics(currentDir: string): Promise<Metrics | null> {
     memoryPercent: totalMem > 0 ? (usedMem / totalMem) * 100 : 0,
   };
 
-  const cpuPercent = await sampleCpuUsage();
-  const diskPercent = getDiskUsage(currentDir);
+  // CPU and disk in parallel
+  const [cpuPercent, diskPercent] = await Promise.all([
+    sampleCpuUsage(),
+    Promise.resolve(getDiskUsage(currentDir)),
+  ]);
 
   return {
     ...memory,
@@ -162,8 +180,19 @@ export const systemLine: LineRenderer = {
 
     const colors = lineConfig.colors || {};
     const currentDir = payload.workspace?.current_dir || payload.cwd || process.cwd();
-    const metrics = await getMetrics(currentDir);
-    if (!metrics) return null;
+
+    let metrics: Metrics | null = null;
+    try {
+      metrics = await getMetrics(currentDir);
+    } catch { /* silent */ }
+
+    if (!metrics) {
+      // Show placeholder instead of disappearing entirely
+      return joinSegments(config, [
+        colorize(String(lineConfig.label || "sys"), colors.label || "#416a63"),
+        secondary("—", config),
+      ]);
+    }
 
     return joinSegments(config, [
       colorize(String(lineConfig.label || "sys"), colors.label || "#416a63"),

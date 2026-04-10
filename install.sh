@@ -243,6 +243,19 @@ else
   LINE_ORDER=$(echo "$ORDER_PARTS" | sed 's/, $//')
 fi
 
+# Padding
+PADDING_VALUE=2
+echo ""
+echo -e "${BOLD}Status line padding:${RESET}"
+echo -e "  ${DIM}Adds horizontal spacing (in characters) around the status line content.${RESET}"
+echo -e "  ${DIM}This controls relative indentation rather than absolute distance.${RESET}"
+echo ""
+if prompt_yesno "  Add padding? (default: 2 characters)" "y"; then
+  PADDING_VALUE=2
+else
+  PADDING_VALUE=0
+fi
+
 # --- Step 3: Generate config ---
 mkdir -p "$CONFIG_DIR/lines"
 
@@ -360,50 +373,81 @@ info "Configuring Claude Code statusline..."
 NODE_PATH=$(command -v node 2>/dev/null || echo "node")
 STATUSLINE_CMD="${NODE_PATH} \"$INSTALL_DIR/index.js\""
 
+# Ask about refreshInterval
+REFRESH_INTERVAL=""
+echo ""
+echo -e "${BOLD}Auto-refresh interval (keeps statusline current during idle):${RESET}"
+echo -e "  ${DIM}Claude Code updates the statusline after each message, but during${RESET}"
+echo -e "  ${DIM}idle periods (e.g. background agents), data like CPU/memory may become stale.${RESET}"
+echo -e "  ${DIM}A refreshInterval re-runs the command every N seconds to stay current.${RESET}"
+echo ""
+if prompt_yesno "  Enable auto-refresh? (recommended for system/mem lines)" "y"; then
+  REFRESH_INTERVAL=', "refreshInterval": 30'
+  echo -e "  ${DIM}Set to 30 seconds. Edit config to change.${RESET}"
+fi
+
 if [ -f "$SETTINGS_FILE" ]; then
   cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup.$(date +%Y%m%d%H%M%S)"
 
-  # Pre-compute JSON-safe statusline command string
-  STATUSLINE_JSON=$(node -e "console.log(JSON.stringify('$STATUSLINE_CMD'))" 2>/dev/null || echo "\"$STATUSLINE_CMD\"")
+  # Use Node.js for safe JSON manipulation — pass command via argv to avoid shell expansion issues
+  STATUSLINE_JSON=$(node -e "console.log(JSON.stringify(process.argv[1]))" "$STATUSLINE_CMD" 2>/dev/null || echo "\"$STATUSLINE_CMD\"")
 
-  if grep -q '"statusLine"' "$SETTINGS_FILE" 2>/dev/null; then
-    node -e "
-      const fs = require('fs');
-      const s = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8'));
-      s._statusLineBackup = s.statusLine || null;
-      s.statusLine = { type: 'command', command: ${STATUSLINE_JSON} };
-      fs.writeFileSync('$SETTINGS_FILE', JSON.stringify(s, null, 2) + '\n');
-    " 2>/dev/null || {
-      err "Failed to update settings.json."
-      echo ""
-      echo "  Add this to your ~/.claude/settings.json:"
-      echo ""
-      echo "  \"statusLine\": {"
-      echo "    \"type\": \"command\","
-      echo "    \"command\": \"$STATUSLINE_CMD\""
-      echo "  }"
-    }
-  else
-    node -e "
-      const fs = require('fs');
-      const s = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8'));
-      s._statusLineBackup = null;
-      s.statusLine = { type: 'command', command: ${STATUSLINE_JSON} };
-      fs.writeFileSync('$SETTINGS_FILE', JSON.stringify(s, null, 2) + '\n');
-    " 2>/dev/null || {
-      err "Failed to update settings.json."
-    }
-  fi
+  node -e "
+    const fs = require('fs');
+    const settingsPath = process.argv[1];
+    const command = ${STATUSLINE_JSON};
+    const wantRefresh = process.argv[2] === 'true';
+    const padding = parseInt(process.argv[3], 10) || 0;
+
+    let settings = {};
+    try { settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8')); } catch {}
+
+    settings._statusLineBackup = settings.statusLine || null;
+    const statusLine = { type: 'command', command: command };
+    if (wantRefresh) statusLine.refreshInterval = 30;
+    if (padding > 0) statusLine.padding = padding;
+    settings.statusLine = statusLine;
+
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+  " "$SETTINGS_FILE" "${REFRESH_INTERVAL:+true}" "$PADDING_VALUE" 2>/dev/null || {
+    err "Failed to update settings.json."
+    echo ""
+    echo "  Add this to your ~/.claude/settings.json:"
+    echo ""
+    echo '  "statusLine": {'
+    echo '    "type": "command",'
+    echo "    \"command\": \"$STATUSLINE_CMD\""
+    if [ -n "$REFRESH_INTERVAL" ]; then
+      echo '    "refreshInterval": 30'
+    fi
+    if [ "$PADDING_VALUE" -gt 0 ]; then
+      echo "    \"padding\": $PADDING_VALUE"
+    fi
+    echo '  }'
+  }
 else
   mkdir -p "$CLAUDE_DIR"
-  cat > "$SETTINGS_FILE" << EOF
+  # Build settings JSON with Node for safety
+  node -e "
+    const fs = require('fs');
+    const command = ${STATUSLINE_JSON};
+    const wantRefresh = ${REFRESH_INTERVAL:+true} || false;
+    const padding = $PADDING_VALUE || 0;
+    const settings = { statusLine: { type: 'command', command } };
+    if (wantRefresh) settings.statusLine.refreshInterval = 30;
+    if (padding > 0) settings.statusLine.padding = padding;
+    fs.writeFileSync('$SETTINGS_FILE', JSON.stringify(settings, null, 2) + '\n');
+  " 2>/dev/null || {
+    cat > "$SETTINGS_FILE" << EOF
 {
   "statusLine": {
     "type": "command",
-    "command": "$STATUSLINE_CMD"
+    "command": "$STATUSLINE_CMD",
+    "refreshInterval": 30
   }
 }
 EOF
+  }
 fi
 
 ok "Claude Code statusline configured"

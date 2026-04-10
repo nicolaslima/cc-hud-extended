@@ -1,86 +1,76 @@
-# Task Plan: GSD Dual-Line — Primary + Secondary
+# Task Plan: Statusline Best Practices Compliance + Release
 
 ## Goal
-Analisar a complexidade e viabilidade de dividir a linha GSD em duas linhas separadas:
-- **gsd** (primary): status do projeto, posição, contexto
-- **gsd:detail** (secondary): blockers, todos, phase progress, last activity
+Corrigir todos os problemas identificados na análise de conformidade com as melhores práticas do statusline do Claude Code, adicionar testes, e criar release v1.1.0.
 
-## Analysis
+## Issues Found (Priority Order)
 
-### Current State
-- A single GSD line can show 12 components when all enabled
-- With all components on: `gsd • 2 of 5 (Foundation) • plan 3/8 • 38% • in progress • 4h • 2 blocked • interactive • ▓▓▓▓░░░░░░ 2/5 • 3 todos • █████░░░░░ 30%`
-- That's potentially 200+ chars — too long for most terminals
+### CRITICAL
+| # | Issue | File | Impact |
+|---|-------|------|--------|
+| C1 | `require()` em contexto ESM | `src/lines/index.ts:26` | Custom lines nunca carregam |
+| C2 | Operações bloqueantes >300ms | `system.ts`, `mem.ts`, `base-hud.ts` | Statusline pode nunca renderizar |
 
-### Proposed Architecture
+### HIGH
+| # | Issue | File | Impact |
+|---|-------|------|--------|
+| H1 | StatuslinePayload incompleto | `src/core/types.ts` | Dados úteis indisponíveis |
+| H2 | Erros vão para stdout | `src/index.ts:69` | Erros aparecem como texto na statusline |
 
-**Option A: Separate Line Renderer (gsd-detail.ts)**
-- Create a new `gsd-detail` line renderer
-- Shares data sources with `gsd` line (same .planning/ reads)
-- Independent enable/disable in config
-- Line order: `["gsd", "gsd:detail", "mem", "system"]`
+### MEDIUM
+| # | Issue | File | Impact |
+|---|-------|------|--------|
+| M1 | Sem `refreshInterval` no install | `install.sh` | Dados ficam stale |
+| M2 | Sem links OSC 8 | `src/` | Perde interatividade |
+| M3 | `sampleCpuUsage()` bloqueia 150ms | `src/lines/system.ts` | Latência a cada render |
 
-**Option B: Auto-split within gsd.ts**
-- Same renderer produces 2 lines when `dualLine: true`
-- Primary line: label, phase, plan, percent, status, task, context
-- Secondary line: blockers, todos, phase progress, last activity, mode, updates
-- Simpler config but less flexibility
+### LOW
+| # | Issue | File | Impact |
+|---|-------|------|--------|
+| L1 | `padding` não configurável | `install.sh` | Gap menor de UX |
+| L2 | Fallback visual ausente para null | `src/lines/system.ts` | Linha some em vez de placeholder |
+| L3 | Shell expansion safety | `install.sh:367` | JSON escape frágil |
 
-**Option C: Line composition (shared data module)**
-- Extract data fetching into `gsd-data.ts` (shared module)
-- `gsd.ts` renders primary line
-- `gsd-detail.ts` renders secondary line
-- Both read from same cached data (avoid double I/O)
+## Phases
 
-### Complexity Assessment
+### Phase 1: Critical Fixes [pending]
+- [ ] C1: Converter `require()` para `import()` dinâmico em `src/lines/index.ts`
+- [ ] C2: Adicionar timeout global de render (500ms) e paralelizar I/O em `system.ts` e `mem.ts`
+- [ ] C2: Reduzir timeout do base-hud spawnSync de 5000ms para 2000ms
+- [ ] C2: Cache CPU sampling em `system.ts` com TTL de 5s
+- [ ] H2: Mover erros de stdout para stderr em `src/index.ts`
 
-| Aspect | Option A | Option B | Option C |
-|--------|----------|----------|----------|
-| New files | 1 (gsd-detail.ts) | 0 | 2 (gsd-data.ts + gsd-detail.ts) |
-| Config changes | +1 line entry | +1 bool flag | +1 line entry |
-| Data I/O duplication | Yes (reads .planning/ twice) | No | No (shared cache) |
-| Flexibility | High (independent order) | Medium (always together) | High |
-| Implementation time | ~30 min | ~15 min | ~45 min |
+### Phase 2: Payload + Features [pending]
+- [ ] H1: Completar `StatuslinePayload` com todos os campos oficiais
+- [ ] M1: Adicionar `refreshInterval` no install script e documentação
+- [ ] M2: Adicionar suporte a OSC 8 links (função helper em `ansi.ts`)
+- [ ] M3: Otimizar CPU sampling com cache
+- [ ] L2: Adicionar fallback visual para dados null (ex: "—" placeholder)
 
-### Recommendation
-**Option A** — é a mais simples e direta. A duplicação de I/O é irrelevante porque o statusline já faz múltiplos reads síncronos pequenos, e o filesystem cache do OS resolve isso.
+### Phase 3: Polish [pending]
+- [ ] L1: Adicionar `padding` como opção no install script
+- [ ] L3: Melhorar shell expansion safety no install.sh
 
-### Primary vs Secondary Classification
+### Phase 4: Tests [pending]
+- [ ] Criar suite de testes com Node.js built-in test runner
+- [ ] Testar parse de payload com campos null/ausentes
+- [ ] Testar custom line loader (ESM)
+- [ ] Testar ANSI color functions
+- [ ] Testar config merge com defaults
+- [ ] Testar renderização de cada linha com payload mock
+- [ ] Testar timeout de stdin
 
-**Primary (gsd):** Core status — always visible when GSD project detected
-- Phase: `2 of 5 (Foundation)`
-- Plan: `plan 3/8`
-- Percent: `38%`
-- Status: `in progress` / `blocked`
-- Task: `Fixing GSD visibility`
-- Context: `█████░░░░░ 30%`
-
-**Secondary (gsd:detail):** Supplementary — details on demand
-- Mode: `interactive`
-- Blockers: `2 blocked`
-- Pending Todos: `3 todos`
-- Phase Progress: `▓▓▓▓░░░░░░ 2/5`
-- Last Activity: `4h`
-- Updates: `⬆ update` / `⚠ stale`
+### Phase 5: Build + Release [pending]
+- [ ] Compilar TypeScript
+- [ ] Rodar testes
+- [ ] Atualizar versão em package.json para 1.1.0
+- [ ] Atualizar README com novos campos e opções
+- [ ] Commit + tag v1.1.0
+- [ ] Push para origin
 
 ## Decisions
-- Decision: implement as Option A (separate gsd-detail line renderer)
-- Decision: share no code between lines initially (YAGNI — refactor later if needed)
-- Decision: gsd-detail has its own DEFAULTS with all secondary components enabled by default
-- Decision: both lines share the same .planning/ detection logic (findProjectRoot)
-
-## Phase 1: Implement gsd-detail line [pending]
-- [ ] Create src/lines/gsd-detail.ts with secondary components
-- [ ] Extract findProjectRoot + parseState into shared module (avoid code duplication)
-- [ ] Add gsd-detail to BUILT_IN_LINES in index.ts
-- [ ] Update DEFAULT lineOrder to include "gsd-detail"
-- [ ] Update config.example.json
-- [ ] Update install.sh prompts
-- [ ] Update README
-
-## Phase 2: Build, test, commit [pending]
-- [ ] Compile TypeScript
-- [ ] Test with payload (primary + secondary lines)
-- [ ] Test with gsd-detail disabled
-- [ ] Test with only gsd-detail enabled
-- [ ] Commit + push
+- Decision: Usar `import()` dinâmico com fallback para `require()` (compatibilidade CJS/ESM)
+- Decision: Timeout global de render = 500ms (dentro do debounce de 300ms do Claude Code)
+- Decision: Cache CPU com TTL de 5s para evitar 150ms de latência a cada render
+- Decision: Links OSC 8 como função helper em ansi.ts, não obrigatório nos renderers
+- Decision: Versão da release = 1.1.0 (patch + minor features)

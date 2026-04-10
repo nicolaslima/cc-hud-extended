@@ -47,3 +47,12 @@ export function stripAnsi(str: string): string {
   // eslint-disable-next-line no-control-regex
   return str.replace(/\x1b\[[0-9;]*m/g, "");
 }
+
+/**
+ * Create an OSC 8 hyperlink.
+ * Requires a terminal that supports hyperlinks (iTerm2, Kitty, WezTerm).
+ * Cmd+click on macOS, Ctrl+click on Windows/Linux to open.
+ */
+export function link(text: string, url: string): string {
+  return `\x1b]8;;${url}\x1b\\${text}\x1b]8;;\x1b\\`;
+}

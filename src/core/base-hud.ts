@@ -44,7 +44,7 @@ export function renderBaseHud(rawInput: string): string {
     input: rawInput,
     encoding: "utf8",
     env: process.env,
-    timeout: 5000,
+    timeout: 2000,
   });
 
   if (result.status !== 0 || !result.stdout) return "";
