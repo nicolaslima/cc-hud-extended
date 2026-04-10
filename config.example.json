@@ -1,0 +1,61 @@
+{
+  "separator": " • ",
+  "colors": {
+    "secondary": "dim"
+  },
+  "baseHud": {
+    "enabled": true,
+    "filterPhaseLine": true,
+    "filterMemoryLine": true,
+    "separatorReplace": " • "
+  },
+  "lines": {
+    "gsd": {
+      "enabled": true,
+      "label": "gsd",
+      "colors": {
+        "label": "#416a63",
+        "executing": "#517243",
+        "warning": "#c0d18c",
+        "critical": "#af7c84"
+      },
+      "showPhase": true,
+      "showPlan": true,
+      "showPercent": true,
+      "showStatus": true,
+      "showTask": true,
+      "showContext": true,
+      "showUpdates": true
+    },
+    "mem": {
+      "enabled": true,
+      "label": "mem",
+      "colors": {
+        "label": "#416a63",
+        "ok": "#416a63",
+        "warning": "#c0d18c",
+        "critical": "#af7c84"
+      },
+      "showProject": true,
+      "showObservations": true,
+      "showPrompts": true,
+      "showSessions": true,
+      "showLastActivity": true,
+      "showState": true
+    },
+    "system": {
+      "enabled": true,
+      "label": "sys",
+      "colors": {
+        "label": "#416a63",
+        "warning": "#c0d18c",
+        "critical": "#af7c84"
+      },
+      "showMemory": true,
+      "showCpu": true,
+      "showDisk": true
+    }
+  },
+  "lineOrder": ["gsd", "mem", "system"],
+  "customLinesDir": null
+}

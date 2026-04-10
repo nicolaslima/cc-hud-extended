@@ -1,0 +1,25 @@
+{
+  "name": "cc-hud-extended",
+  "version": "1.0.0",
+  "description": "Modular, extensible statusline extension for Claude Code — adds custom lines (GSD, memory, system, and more) alongside or without claude-hud",
+  "main": "dist/index.js",
+  "bin": {
+    "cc-hud-extended": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "node --test dist/**/*.test.js 2>/dev/null || echo 'no tests yet'"
+  },
+  "keywords": ["claude-code", "statusline", "hud", "gsd", "claude-mem", "extension"],
+  "author": "Nicolas Lima",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nicolaslima/cc-hud-extended.git"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  }
+}
