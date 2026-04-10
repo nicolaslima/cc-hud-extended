@@ -32,9 +32,9 @@ const DEFAULTS: GsdLineConfig = {
   label: "gsd",
   colors: {
     label: "#416a63",
-    executing: "#517243",
+    executing: "#416a63",
     warning: "#c0d18c",
-    critical: "#af7c84",
+    critical: "#a23552",
   },
   showPhase: true,
   showPlan: true,
@@ -89,7 +89,7 @@ export const gsdLine: LineRenderer = {
     if (!hasContent) return null;
 
     if (task && lineConfig.showTask) {
-      segments.push(colorize(task, colors.executing || "#517243"));
+      segments.push(colorize(task, colors.executing || "#416a63"));
     }
 
     // 4. Context usage progress bar

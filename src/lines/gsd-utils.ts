@@ -263,8 +263,8 @@ export function formatRelativeTime(date: Date): string {
 // --- Status color resolution ---
 
 export function resolveStatusColor(status: string, colors: { critical?: string; executing?: string; warning?: string; label?: string }): string {
-  if (status.includes("blocked")) return colors.critical || "#af7c84";
-  if (status.includes("execut")) return colors.executing || "#517243";
+  if (status.includes("blocked")) return colors.critical || "#a23552";
+  if (status.includes("execut")) return colors.executing || "#416a63";
   if (status.includes("planning") || status.includes("ready")) return colors.warning || "#c0d18c";
   return colors.label || "#416a63";
 }

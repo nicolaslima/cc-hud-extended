@@ -15,9 +15,9 @@
       "label": "gsd",
       "colors": {
         "label": "#416a63",
-        "executing": "#517243",
+        "executing": "#416a63",
         "warning": "#c0d18c",
-        "critical": "#af7c84"
+        "critical": "#a23552"
       },
       "showPhase": true,
       "showPlan": true,
@@ -31,9 +31,9 @@
       "label": "gsd",
       "colors": {
         "label": "#416a63",
-        "executing": "#517243",
+        "executing": "#416a63",
         "warning": "#c0d18c",
-        "critical": "#af7c84"
+        "critical": "#a23552"
       },
       "showMode": true,
       "showBlockers": true,
@@ -49,7 +49,7 @@
         "label": "#416a63",
         "ok": "#416a63",
         "warning": "#c0d18c",
-        "critical": "#af7c84"
+        "critical": "#a23552"
       },
       "showProject": true,
       "showObservations": true,
@@ -64,7 +64,7 @@
       "colors": {
         "label": "#416a63",
         "warning": "#c0d18c",
-        "critical": "#af7c84"
+        "critical": "#a23552"
       },
       "showMemory": true,
       "showCpu": true,

@@ -253,7 +253,7 @@ if [ "$GSD_ENABLED" = "y" ]; then
     "gsd": {
       "enabled": true,
       "label": "gsd",
-      "colors": { "label": "#416a63", "executing": "#517243", "warning": "#c0d18c", "critical": "#af7c84" },
+      "colors": { "label": "#416a63", "executing": "#416a63", "warning": "#c0d18c", "critical": "#a23552" },
       "showPhase": $GSD_SHOW_PHASE,
       "showPlan": $GSD_SHOW_PLAN,
       "showPercent": $GSD_SHOW_PERCENT,
@@ -271,7 +271,7 @@ if [ "$GSD_DETAIL_ENABLED" = "y" ]; then
     "gsd-detail": {
       "enabled": true,
       "label": "gsd",
-      "colors": { "label": "#416a63", "executing": "#517243", "warning": "#c0d18c", "critical": "#af7c84" },
+      "colors": { "label": "#416a63", "executing": "#416a63", "warning": "#c0d18c", "critical": "#a23552" },
       "showMode": $GSD_DETAIL_SHOW_MODE,
       "showBlockers": $GSD_DETAIL_SHOW_BLOCKERS,
       "showPendingTodos": $GSD_DETAIL_SHOW_PENDING_TODOS,
@@ -289,7 +289,7 @@ if [ "$MEM_ENABLED" = "y" ]; then
     "mem": {
       "enabled": true,
       "label": "mem",
-      "colors": { "label": "#416a63", "ok": "#416a63", "warning": "#c0d18c", "critical": "#af7c84" },
+      "colors": { "label": "#416a63", "ok": "#416a63", "warning": "#c0d18c", "critical": "#a23552" },
       "showProject": true, "showObservations": true, "showPrompts": true,
       "showSessions": true, "showLastActivity": true, "showState": true
     }
@@ -303,7 +303,7 @@ if [ "$SYS_ENABLED" = "y" ]; then
     "system": {
       "enabled": true,
       "label": "sys",
-      "colors": { "label": "#416a63", "warning": "#c0d18c", "critical": "#af7c84" },
+      "colors": { "label": "#416a63", "warning": "#c0d18c", "critical": "#a23552" },
       "showMemory": true, "showCpu": true, "showDisk": true
     }
 SYSJSON

@@ -23,7 +23,7 @@ const DEFAULTS: SystemLineConfig = {
   colors: {
     label: "#416a63",
     warning: "#c0d18c",
-    critical: "#af7c84",
+    critical: "#a23552",
   },
   showMemory: true,
   showCpu: true,
@@ -50,7 +50,7 @@ function classifyPercent(value: number): "critical" | "warning" | "secondary" {
 }
 
 function resolveMetricColor(level: string, colors: LineColors): string {
-  if (level === "critical") return colors.critical || "#af7c84";
+  if (level === "critical") return colors.critical || "#a23552";
   if (level === "warning") return colors.warning || "#c0d18c";
   return "dim";
 }

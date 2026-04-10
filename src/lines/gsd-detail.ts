@@ -33,9 +33,9 @@ const DEFAULTS: GsdDetailLineConfig = {
   label: "gsd",
   colors: {
     label: "#416a63",
-    executing: "#517243",
+    executing: "#416a63",
     warning: "#c0d18c",
-    critical: "#af7c84",
+    critical: "#a23552",
   },
   showMode: true,
   showBlockers: true,
@@ -76,7 +76,7 @@ export const gsdDetailLine: LineRenderer = {
       const state = parseState(statePath);
       if (state) {
         if (lineConfig.showBlockers && state.blockers.length > 0) {
-          segments.push(colorize(`${state.blockers.length} blocked`, colors.critical || "#af7c84"));
+          segments.push(colorize(`${state.blockers.length} blocked`, colors.critical || "#a23552"));
         }
         if (lineConfig.showLastActivity && state.lastActivity) {
           const relTime = formatRelativeTime(state.lastActivity.date);
@@ -111,7 +111,7 @@ export const gsdDetailLine: LineRenderer = {
     if (lineConfig.showUpdates) {
       const updates = getGsdUpdates();
       if (updates.updateAvailable) segments.push(colorize("⬆ update", colors.warning || "#c0d18c"));
-      if (updates.staleHooks) segments.push(colorize("⚠ stale", colors.critical || "#af7c84"));
+      if (updates.staleHooks) segments.push(colorize("⚠ stale", colors.critical || "#a23552"));
     }
 
     // Only show detail line if there's meaningful content

@@ -27,7 +27,7 @@ const DEFAULTS: MemLineConfig = {
     label: "#416a63",
     ok: "#416a63",
     warning: "#c0d18c",
-    critical: "#af7c84",
+    critical: "#a23552",
   },
   showProject: true,
   showObservations: true,
@@ -138,14 +138,14 @@ async function getWorkerState(): Promise<WorkerState | null> {
 }
 
 function formatState(workerState: WorkerState | null, colors: LineColors): string {
-  if (!workerState) return colorize("down", colors.critical || "#af7c84");
+  if (!workerState) return colorize("down", colors.critical || "#a23552");
 
   const failed = Number(workerState.queue?.queue?.totalFailed) || 0;
   const pending = Number(workerState.queue?.queue?.totalPending) || 0;
   const processingCount = Number(workerState.queue?.queue?.totalProcessing) || 0;
   const depth = Number(workerState.processing?.queueDepth) || 0;
 
-  if (failed > 0) return colorize(`failed ${failed}`, colors.critical || "#af7c84");
+  if (failed > 0) return colorize(`failed ${failed}`, colors.critical || "#a23552");
   if (workerState.processing?.isProcessing || processingCount > 0) {
     return colorize(`processing ${depth || processingCount}`, colors.warning || "#c0d18c");
   }
